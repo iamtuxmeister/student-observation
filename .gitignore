@@ -37,4 +37,5 @@ main
 cmd/web/assets/css/output.css
 tailwindcss
 
-node_modules
+# block node modules
+node_modules/
