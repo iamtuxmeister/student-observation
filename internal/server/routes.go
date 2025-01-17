@@ -5,11 +5,13 @@ import (
 	"log"
 	"net/http"
 
+	"student-observation/cmd/web"
+
+	"gitea.com/go-chi/session"
 	"github.com/a-h/templ"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
-	"student-observation/cmd/web"
 )
 
 func (s *Server) RegisterRoutes() http.Handler {
@@ -23,15 +25,16 @@ func (s *Server) RegisterRoutes() http.Handler {
 		AllowCredentials: true,
 		MaxAge:           300,
 	}))
+	r.Use(session.Sessioner(Opts()))
+	r.Use(s.AuthMiddleware)
 
 	r.Get("/", s.HelloWorldHandler)
-
-	r.Get("/health", s.healthHandler)
 
 	fileServer := http.FileServer(http.FS(web.Files))
 	r.Handle("/assets/*", fileServer)
 	r.Get("/web", templ.Handler(web.HelloForm()).ServeHTTP)
 	r.Post("/hello", web.HelloWebHandler)
+	r.Get("/login", Login(s.db.DB()))
 
 	return r
 }
@@ -45,10 +48,5 @@ func (s *Server) HelloWorldHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatalf("error handling JSON marshal. Err: %v", err)
 	}
 
-	_, _ = w.Write(jsonResp)
-}
-
-func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
-	jsonResp, _ := json.Marshal(s.db.Health())
 	_, _ = w.Write(jsonResp)
 }
